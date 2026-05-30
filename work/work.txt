@@ -1,0 +1,80 @@
+Todo Master 项目说明
+
+1. 项目概述
+
+Todo Master 是一个前后端分离的待办事项管理系统。
+前端使用 Vue 3、Vite、Element Plus，后端使用 Spring Boot、MyBatis-Plus、JWT 和 MySQL。
+
+当前版本已经完成如下更新：
+- 首页允许未登录浏览，不再默认跳到登录页
+- 只有点击“添加任务”时，未登录用户才跳转到登录页
+- 前端登录页、首页、个人中心、后台管理页 UI 已统一重构
+- 个人中心支持独立维护 QQ、昵称、邮箱、密码
+- 邮箱未变化时不扣除修改次数
+- 昵称为空时不允许保存
+- 管理后台支持用户管理、公告管理、强制下线和密码重置
+- 首页底部已增加 `By Dormitory-111` 版权信息
+- 已修复后台页因 Element Plus 分包循环依赖导致的白屏问题
+
+2. 技术栈
+
+- 前端：Vue 3.4、Vue Router 4、Element Plus、Axios、Vite 5
+- 后端：Spring Boot 4.0.6、MyBatis-Plus 3.5.9、JWT
+- 数据库：MySQL 8.0
+- Java：17
+
+3. 主要功能
+
+用户侧：
+- 用户注册、登录
+- 待办事项新增、编辑、删除、完成状态切换
+- 优先级与截止时间设置
+- 个人中心维护 QQ、昵称、邮箱、密码
+- 公告查看与已读状态记录
+- 到期邮件提醒
+
+管理员侧：
+- 管理员独立登录页
+- 用户启用/禁用
+- 用户密码重置
+- 用户强制下线
+- 公告发布、编辑、删除
+
+4. 当前运行方式
+
+数据库初始化：
+mysql -u root -p < db/schema.sql
+
+启动后端：
+cd back
+mvnw.cmd spring-boot:run
+
+如果是 Linux / macOS 环境，可使用：
+mvn spring-boot:run
+
+启动前端：
+cd front
+npm install
+npm run dev
+
+默认地址：
+- 前端开发环境：http://localhost:3000
+- 后端接口：http://localhost:8080
+
+更新前端后如果要部署到 8080：
+- 先执行 `npm run build`
+- 再执行后端打包
+- 仅重启旧 JAR 而不重新打包，服务器仍会继续提供旧版前端文件
+
+5. 目录说明
+
+- 数据库脚本：work/数据库脚本/schema.sql
+- 配置文件：work/配置文件/
+- 后端源码镜像：work/源码/back/
+- 前端源码镜像：work/源码/front/
+
+6. 说明
+
+本目录中的源码、SQL 和配置文件已同步到当前最新版项目状态，可直接作为课程提交材料或备份材料使用。
+其中 `work/配置文件/fab-todo.service` 为 Linux `systemd` 服务示例。
+其中 `work/源码/front/vite.config.js` 已同步为当前稳定分包版本。

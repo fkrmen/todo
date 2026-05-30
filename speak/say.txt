@@ -1,0 +1,139 @@
+5分钟演讲稿：Todo Master 基于 Linux 的待办事项管理系统
+
+大家好，我介绍的项目叫 Todo Master，这是一个基于 Linux 环境部署的待办事项管理系统。这个项目的目标，是解决用户日常任务记录、状态跟踪和提醒的问题，同时提供管理员后台，方便对用户和公告进行统一管理。
+
+先介绍一下技术栈。
+这个项目采用前后端分离架构。
+前端使用的是 Vue 3、Vue Router、Element Plus、Axios 和 Vite。
+后端使用的是 Spring Boot、MyBatis-Plus、JWT 身份认证，以及 JavaMail 实现邮件提醒。
+数据库使用 MySQL 8.0。
+项目最终的部署环境是 Linux，后端打包成 jar 包运行，前端构建后作为静态资源交给 Spring Boot 一起提供服务。
+
+从功能上看，这个系统分为普通用户和管理员两个角色。
+普通用户可以完成注册、登录、待办事项新增、编辑、删除、完成状态切换，还可以设置任务优先级和截止时间。
+如果用户填写了邮箱，系统还会通过定时任务扫描即将到期的待办，并发送邮件提醒。
+管理员可以通过独立后台完成用户管理和公告管理，比如启用或禁用用户、重置密码、强制下线、发布公告、编辑公告和删除公告。
+
+下面介绍系统架构。
+前端主要负责页面渲染和交互，请求通过 Axios 发送到后端接口。
+后端按照 Controller、Service、Mapper 分层设计。
+Controller 负责接收请求，Service 负责业务逻辑，Mapper 负责和数据库交互。
+例如待办模块对应 TodoController、TodoService 和 TodoMapper，管理员模块对应 AdminController。
+这种分层设计的好处是结构清晰，便于后续维护和扩展。
+
+在登录认证方面，我使用了 JWT。
+用户登录成功后，后端生成 token，前端把 token 保存在本地。
+后续访问受保护接口时，会把 token 放到 Authorization 请求头里。
+后端通过 JwtInterceptor 统一拦截和校验 token。
+如果 token 无效或者过期，系统会返回未登录状态；如果管理员执行了强制下线，系统也会阻止旧 token 继续访问。
+这样可以减少服务器保存会话的压力，也比较适合前后端分离项目。
+
+数据库方面，这个项目主要设计了三张核心表。
+第一张是 fab_user，用来保存用户账号、密码、角色、状态、邮箱、昵称等信息。
+第二张是 fab_todo，用来保存待办事项，包括标题、优先级、截止时间、是否完成、是否已提醒。
+第三张是 fab_notice，用来保存系统公告。
+其中 fab_todo 通过外键关联 fab_user，这样可以保证每个待办都属于某个用户。
+
+这个项目有一个比较体现后端能力的点，就是定时提醒功能。
+我在后端写了一个 RemindTask 定时任务，每隔 5 分钟扫描一次数据库。
+如果发现某条待办满足提醒条件，并且用户已经填写邮箱，系统就会自动发送提醒邮件，并把这条记录标记为已提醒，避免重复发送。
+这样项目不只是一个简单的增删改查，还加入了自动化服务能力。
+
+下面重点说一下 Linux 部署，因为这是本项目答辩中很重要的一部分。
+我在 Linux 上主要做了四件事：环境安装、项目构建、服务运行、服务管理。
+
+第一，初始化数据库常用命令是：
+mysql -u root -p < db/schema.sql
+这条命令的作用是把项目里的建库建表脚本导入 MySQL。
+
+第二，前端构建命令是：
+cd front
+npm install
+npm run build
+其中 npm install 是安装依赖，npm run build 是把前端源码打包成 dist 静态资源。
+
+第三，后端打包命令是：
+cd back
+mvn -DskipTests package
+这条命令会把 Spring Boot 项目打成 fab-todo.jar。
+并且这个项目在 pom.xml 中已经配置好，会把前端构建结果一起打进后端的 static 目录，所以最后浏览器访问 8080 端口时，可以同时拿到页面和接口服务。
+
+第四，运行 jar 包的命令是：
+java -jar target/fab-todo.jar
+如果要放到后台运行，也可以使用 nohup。
+
+为了让项目在 Linux 服务器中更稳定，我还配置了 systemd 服务文件，也就是 fab-todo.service。
+常用命令包括：
+systemctl start fab-todo
+systemctl stop fab-todo
+systemctl restart fab-todo
+systemctl status fab-todo
+这些命令可以完成启动、停止、重启和查看服务状态。
+如果要看运行日志，可以使用：
+journalctl -u fab-todo -f
+这样就能实时观察项目是否启动成功、接口是否报错、邮件提醒是否执行。
+
+如果服务器开启了防火墙，还需要开放 8080 端口，常用命令是：
+firewall-cmd --zone=public --add-port=8080/tcp --permanent
+firewall-cmd --reload
+这样外部浏览器才能访问系统。
+
+如果答辩老师问“为什么选择 Linux”，我会这样回答：
+第一，Linux 更适合 Java Web 项目部署，稳定性高。
+第二，Linux 对服务管理更方便，可以用 systemd 做开机自启和故障重启。
+第三，Linux 的命令行工具很适合完成构建、打包、查看日志和排查问题。
+
+如果现场演示，我建议按这个顺序来讲：
+先打开首页，说明未登录状态下也可以浏览。
+然后演示用户登录、新增待办、设置截止时间和优先级。
+接着进入个人中心，说明可以维护昵称、QQ、邮箱和密码。
+再进入管理员后台，展示用户管理和公告管理。
+最后展示 Linux 部署命令或者 systemd 服务文件，证明这个项目不仅能在本地运行，也能真正部署上线。
+
+最后做一个总结。
+这个项目的核心价值有三点：
+第一，技术栈完整，包含前端、后端、数据库和 Linux 部署。
+第二，功能较完整，不只是基础 CRUD，还包含 JWT 认证、管理员权限控制和邮件提醒。
+第三，工程化程度较高，支持前后端打包整合，并能通过 systemd 方式在 Linux 服务器长期运行。
+
+我的介绍完毕，谢谢各位老师。
+
+
+答辩时可额外补充的关键词：
+- 前后端分离
+- RESTful API
+- JWT 无状态认证
+- MyBatis-Plus 简化数据库操作
+- Vite 提升前端构建效率
+- systemd 服务托管
+- journalctl 日志排查
+- 定时任务邮件提醒
+
+
+答辩时可直接展示的 Linux 命令清单：
+
+1. 导入数据库
+mysql -u root -p < db/schema.sql
+
+2. 构建前端
+cd /opt/todo-project/front
+npm install
+npm run build
+
+3. 打包后端
+cd /opt/todo-project/back
+mvn -DskipTests package
+
+4. 启动服务
+systemctl start fab-todo
+systemctl status fab-todo
+
+5. 查看日志
+journalctl -u fab-todo -f
+
+6. 检查端口
+netstat -tlnp | grep 8080
+
+7. 开放防火墙端口
+firewall-cmd --zone=public --add-port=8080/tcp --permanent
+firewall-cmd --reload

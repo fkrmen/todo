@@ -1,0 +1,93 @@
+Todo Master 更新部署说明
+
+适用场景：
+- 已经部署过旧版本
+- 现在需要把前端 UI、后端逻辑和数据库脚本一起更新
+
+一、建议更新内容
+
+需要同步的目录：
+- back/
+- front/
+- db/schema.sql
+- 配置文件中与数据库、邮件、JWT 相关的实际值
+
+二、开发环境本地运行
+
+1. 初始化数据库
+mysql -u root -p < db/schema.sql
+
+2. 启动后端
+cd back
+mvnw.cmd spring-boot:run
+
+3. 启动前端
+cd front
+npm install
+npm run dev
+
+说明：
+- 前端默认端口是 3000
+- Vite 会把 /api 代理到 http://localhost:8080
+- 如果页面报 ECONNREFUSED，表示后端没有启动
+- 本地前端已修复 Element Plus 分包导致的后台白屏问题
+
+三、生产/服务器更新流程
+
+1. 停止旧服务
+systemctl stop fab-todo
+
+2. 更新代码
+将最新的 back、front、db/schema.sql 上传到服务器部署目录
+
+3. 重建前端
+cd /opt/todo-project/front
+npm install
+npm run build
+
+4. 重打包后端
+cd /opt/todo-project/back
+mvn -DskipTests package
+
+5. 启动服务
+systemctl start fab-todo
+systemctl status fab-todo
+
+6. 验证是否已加载新版前端
+curl http://127.0.0.1:8080/ | head -20
+curl -I http://127.0.0.1:8080/assets/index-DS38Yaji.js
+curl -I http://127.0.0.1:8080/assets/element-plus-BAxHmODt.js
+
+四、数据库说明
+
+当前 schema.sql 已修复：
+- 去掉了 MySQL 8 不支持的 ADD COLUMN IF NOT EXISTS 写法
+- 去掉了旧版本里的乱码注释
+- 现在可直接导入
+
+如果数据库是全新环境，直接导入 schema.sql 即可。
+
+如果数据库是旧环境，建议：
+- 先备份
+- 再根据现有表结构决定是直接重建还是手动补字段
+
+五、默认管理员
+
+首次启动时系统会自动创建管理员：
+- 用户名：admin
+- 密码：admin123
+
+六、当前重点变化
+
+- 首页不再默认要求登录
+- 登录页和管理后台 UI 已更新
+- 个人中心逻辑已修复
+- 管理后台文案和页面已统一
+- 首页底部已增加 `By Dormitory-111`
+- 前端构建策略已调整为稳定分包
+- 已修复后台页白屏问题
+
+补充：
+- Windows 本地开发建议使用 `mvnw.cmd`
+- `work/配置文件/fab-todo.service` 适用于 Linux 服务器的 `systemd` 部署
+- 如果浏览器仍白屏，先强制刷新或开无痕模式，再检查 F12 Console 红字报错

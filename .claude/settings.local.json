@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:/Users/27938/OneDrive/桌面/todo-project-claude/back/src/main/java/com/fab/todo/entity\")",
+      "Bash(mkdir -p \"C:/Users/27938/OneDrive/桌面/todo-project-claude/back/src/main/java/com/fab/todo/dto\")",
+      "Bash(mkdir -p \"C:/Users/27938/OneDrive/桌面/todo-project-claude/back/src/main/java/com/fab/todo/controller\")",
+      "Bash(mkdir -p \"C:/Users/27938/OneDrive/桌面/todo-project-claude/back/src/main/java/com/fab/todo/service\")",
+      "Bash(mkdir -p \"C:/Users/27938/OneDrive/桌面/todo-project-claude/back/src/main/java/com/fab/todo/mapper\")"
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": false
+  }
+}

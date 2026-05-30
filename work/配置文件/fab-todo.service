@@ -1,0 +1,14 @@
+[Unit]
+Description=Todo Master Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/todo-project/back
+ExecStart=/usr/lib/jvm/java-17-amazon-corretto/bin/java -jar /opt/todo-project/back/target/fab-todo.jar
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

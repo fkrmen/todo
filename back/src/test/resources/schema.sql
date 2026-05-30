@@ -1,0 +1,37 @@
+CREATE TABLE fab_user (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    status INT NOT NULL DEFAULT 1,
+    qq VARCHAR(20),
+    nickname VARCHAR(50),
+    email_change_count INT NOT NULL DEFAULT 0,
+    email_change_date DATE,
+    last_notice_seen_at TIMESTAMP,
+    force_logout_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE fab_todo (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    level VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+    deadline TIMESTAMP,
+    done INT NOT NULL DEFAULT 0,
+    reminded INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_todo_user FOREIGN KEY (user_id) REFERENCES fab_user(id) ON DELETE CASCADE
+);
+
+CREATE TABLE fab_notice (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    content CLOB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
