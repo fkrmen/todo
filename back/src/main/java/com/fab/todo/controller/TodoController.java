@@ -1,7 +1,10 @@
 package com.fab.todo.controller;
 
 import com.fab.todo.dto.TodoDto;
+import com.fab.todo.dto.TodoParseRequestDto;
+import com.fab.todo.dto.TodoParseResultDto;
 import com.fab.todo.entity.Todo;
+import com.fab.todo.service.TodoParseService;
 import com.fab.todo.service.TodoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +23,11 @@ import java.util.Map;
 public class TodoController {
 
     private final TodoService todoService;
+    private final TodoParseService todoParseService;
 
-    public TodoController(TodoService todoService) {
+    public TodoController(TodoService todoService, TodoParseService todoParseService) {
         this.todoService = todoService;
+        this.todoParseService = todoParseService;
     }
 
     /** 获取当前用户的所有待办，未登录返回空列表 */
@@ -55,6 +60,19 @@ public class TodoController {
             Long userId = (Long) request.getAttribute("userId");
             Todo todo = todoService.create(dto, userId);
             return ResponseEntity.ok(success(todo));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(error(e.getMessage()));
+        }
+    }
+
+    /** 一句话解析待办，不落库 */
+    @PostMapping("/parse")
+    public ResponseEntity<Map<String, Object>> parse(@RequestBody TodoParseRequestDto dto) {
+        try {
+            TodoParseResultDto result = todoParseService.parse(dto.getText());
+            return ResponseEntity.ok(success(result));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(503).body(error(503, e.getMessage()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(error(e.getMessage()));
         }
@@ -107,8 +125,12 @@ public class TodoController {
     }
 
     private Map<String, Object> error(String msg) {
+        return error(400, msg);
+    }
+
+    private Map<String, Object> error(int code, String msg) {
         Map<String, Object> map = new HashMap<>();
-        map.put("code", 400);
+        map.put("code", code);
         map.put("msg", msg);
         return map;
     }

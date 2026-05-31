@@ -2,10 +2,14 @@
   <div class="todo-page">
     <section class="page-hero">
       <div class="hero-copy">
-        <span class="hero-badge">{{ isLoggedIn ? '已登录工作台' : '访客浏览模式' }}</span>
-        <h1>今天要做什么</h1>
+        <span class="hero-badge">{{ heroGreeting }}</span>
+        <h1>今天要做什么？</h1>
         <p>
-          {{ isLoggedIn ? '把重要任务放进列表，按优先级和截止时间推进' : '首页可以先浏览，点击添加任务时再进入登录页' }}
+          {{
+            isLoggedIn
+              ? ''
+              : ''
+          }}
         </p>
       </div>
       <div class="hero-progress">
@@ -53,47 +57,145 @@
 
     <section class="add-section">
       <div class="section-head">
-        <div>
-          <h2>快速新增</h2>
-          <p>输入标题后回车即可创建，也可以补充优先级和截止时间</p>
-        </div>
+       
       </div>
 
-      <el-input
-        v-model="newTodo.title"
-        placeholder="添加一条新任务，按 Enter 可以快速创建"
-        size="large"
-        clearable
-        class="add-input"
-        @keyup.enter="addTodo"
-      >
-        <template #prefix>
-          <el-icon><Plus /></el-icon>
-        </template>
-      </el-input>
+      <div class="add-layout">
+        <article class="add-card manual-card">
+          <div class="card-head">
+            <div>
+              <!-- <span class="card-kicker">主入口</span> -->
+              <h3>新增待办</h3>
+            </div>
+            <!-- <span class="card-note">支持快捷截止时间</span> -->
+          </div>
 
-      <div class="add-options">
-        <el-select v-model="newTodo.level" class="level-select" size="large">
-          <el-option label="低优先级" value="LOW" />
-          <el-option label="中优先级" value="MEDIUM" />
-          <el-option label="高优先级" value="HIGH" />
-        </el-select>
-        <el-date-picker
-          v-model="newTodo.deadline"
-          type="datetime"
-          placeholder="截止时间"
-          format="MM/DD HH:mm"
-          value-format="YYYY-MM-DDTHH:mm:ss"
-          :shortcuts="dateShortcuts"
-          :disabled-date="disabledPastDate"
-          clearable
-          class="date-picker"
-          popper-class="date-picker-popper"
-        />
-        <el-button type="primary" class="add-btn" :disabled="!newTodo.title.trim()" @click="addTodo">
-          <el-icon><Plus /></el-icon>
-          添加任务
-        </el-button>
+          <el-input
+            v-model="newTodo.title"
+            placeholder="输入待办标题，例如：提交Linux作业"
+            size="large"
+            clearable
+            class="add-input"
+          >
+            <template #prefix>
+              <el-icon><Plus /></el-icon>
+            </template>
+          </el-input>
+
+          <div class="manual-row">
+            <div class="field-block field-priority">
+              <label class="field-label">优先级</label>
+              <el-select v-model="newTodo.level" class="level-select" size="large">
+                <el-option label="低优先级" value="LOW" />
+                <el-option label="中优先级" value="MEDIUM" />
+                <el-option label="高优先级" value="HIGH" />
+              </el-select>
+            </div>
+
+            <div class="field-block field-deadline">
+              <div class="deadline-head">
+                <label class="field-label">截止时间</label>
+                <button type="button" class="custom-deadline-toggle" @click="toggleCustomDeadlinePicker">
+                  {{ showCustomDeadlinePicker ? '收起自定义' : '自定义时间' }}
+                </button>
+              </div>
+
+              <div class="deadline-preset-row">
+                <button
+                  v-for="preset in deadlinePresets"
+                  :key="preset.id"
+                  type="button"
+                  class="deadline-preset"
+                  :class="{
+                    active: selectedDeadlinePreset === preset.id,
+                    clear: preset.id === 'clear'
+                  }"
+                  @click="applyDeadlinePreset(preset.id)"
+                >
+                  {{ preset.label }}
+                </button>
+              </div>
+
+              <div class="deadline-summary">
+                <span class="summary-label">当前选择</span>
+                <span class="summary-value" :class="{ empty: !newTodo.deadline }">
+                  {{ deadlineDisplayText }}
+                </span>
+              </div>
+
+              <div v-if="showCustomDeadlinePicker" class="custom-picker-wrap">
+                <el-date-picker
+                  v-model="newTodo.deadline"
+                  type="datetime"
+                  placeholder="请选择自定义截止时间"
+                  format="MM/DD HH:mm"
+                  value-format="YYYY-MM-DDTHH:mm:ss"
+                  :shortcuts="dateShortcuts"
+                  :disabled-date="disabledPastDate"
+                  clearable
+                  class="date-picker custom-date-picker"
+                  popper-class="date-picker-popper"
+                  @change="handleCustomDeadlineChange"
+                />
+              </div>
+            </div>
+          </div>
+
+          <el-button
+            type="primary"
+            class="primary-add-btn"
+            :disabled="manualSubmitDisabled"
+            @click="createTodo"
+          >
+            <el-icon><Plus /></el-icon>
+            添加任务
+          </el-button>
+        </article>
+
+        <article class="add-card smart-card">
+          <div class="card-head">
+            <div>
+              <!-- <span class="card-kicker subtle">辅助入口</span> -->
+              <h3>一句话智能解析</h3>
+            </div>
+            <!-- <span class="card-note">仅回填，不自动创建</span> -->
+          </div>
+
+          <p class="smart-desc">
+            输入一句话，系统会自动分析标题、优先级和截止时间
+          </p>
+
+          <el-input
+            v-model="quickText"
+            type="textarea"
+            :rows="4"
+            resize="none"
+            placeholder="例如：明天下午4点提交Linux作业，高优先级"
+            class="smart-textarea"
+          />
+
+          <div class="parse-status-box">
+            <span class="parse-chip" :class="parseStatus">
+              {{ isParsing ? '解析中...' : hasParsedDraft ? '已回填' : '待解析' }}
+            </span>
+            <p class="parse-text">
+              {{
+                hasParsedDraft
+                  ? '解析成功，可以继续手动修改后再添加。'
+                  : '点击下方按钮后才会触发智能解析'
+              }}
+            </p>
+          </div>
+
+          <el-button
+            class="smart-parse-btn"
+            :loading="isParsing"
+            :disabled="parseButtonDisabled"
+            @click="parseQuickTodo"
+          >
+            智能解析
+          </el-button>
+        </article>
       </div>
     </section>
 
@@ -207,11 +309,16 @@ import request from '../api/request'
 import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
-const { isLoggedIn } = useAuth()
+const { displayName, isLoggedIn } = useAuth()
 
 const todos = ref([])
 const activeFilter = ref('all')
 const editDialogVisible = ref(false)
+const quickText = ref('')
+const parseStatus = ref('idle')
+const parsedSourceText = ref('')
+const selectedDeadlinePreset = ref('')
+const showCustomDeadlinePicker = ref(false)
 
 const newTodo = reactive({
   title: '',
@@ -226,47 +333,111 @@ const editForm = reactive({
   deadline: null
 })
 
+const deadlinePresets = [
+  { id: 'today', label: '今天结束前' },
+  { id: 'tomorrow', label: '明天' },
+  { id: 'threeDays', label: '3天内' },
+  { id: 'week', label: '一周内' },
+  { id: 'clear', label: '清空' }
+]
+
 const dateShortcuts = [
   {
     text: '今天',
-    value: () => {
-      const date = new Date()
-      date.setHours(23, 59, 0, 0)
-      return date
-    }
+    value: () => endOfDay(new Date())
   },
   {
     text: '明天',
-    value: () => {
-      const date = new Date()
-      date.setDate(date.getDate() + 1)
-      date.setHours(23, 59, 0, 0)
-      return date
-    }
+    value: () => endOfDay(addDays(new Date(), 1))
   },
   {
     text: '三天后',
-    value: () => {
-      const date = new Date()
-      date.setDate(date.getDate() + 3)
-      date.setHours(23, 59, 0, 0)
-      return date
-    }
+    value: () => endOfDay(addDays(new Date(), 3))
   },
   {
     text: '一周后',
-    value: () => {
-      const date = new Date()
-      date.setDate(date.getDate() + 7)
-      date.setHours(23, 59, 0, 0)
-      return date
-    }
+    value: () => endOfDay(addDays(new Date(), 7))
   }
 ]
 
 function disabledPastDate(time) {
   return time.getTime() < Date.now() - 60 * 1000
 }
+
+function addDays(date, days) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function endOfDay(date) {
+  const value = new Date(date)
+  value.setHours(23, 59, 0, 0)
+  return value
+}
+
+function toLocalDateTimeString(date) {
+  const pad = num => String(num).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function getPresetDeadlineValue(presetId) {
+  const now = new Date()
+
+  switch (presetId) {
+    case 'today':
+      return toLocalDateTimeString(endOfDay(now))
+    case 'tomorrow':
+      return toLocalDateTimeString(endOfDay(addDays(now, 1)))
+    case 'threeDays':
+      return toLocalDateTimeString(endOfDay(addDays(now, 3)))
+    case 'week':
+      return toLocalDateTimeString(endOfDay(addDays(now, 7)))
+    default:
+      return null
+  }
+}
+
+function resetManualForm() {
+  newTodo.title = ''
+  newTodo.level = 'MEDIUM'
+  newTodo.deadline = null
+  selectedDeadlinePreset.value = ''
+  showCustomDeadlinePicker.value = false
+}
+
+function resetSmartDraft() {
+  quickText.value = ''
+  parseStatus.value = 'idle'
+  parsedSourceText.value = ''
+}
+
+function resetCreateForm() {
+  resetManualForm()
+  resetSmartDraft()
+}
+
+function applyParsedDraft(data) {
+  newTodo.title = (data?.title || quickText.value).trim()
+  newTodo.level = data?.level || 'MEDIUM'
+  newTodo.deadline = data?.deadline || null
+
+  if (!newTodo.deadline) {
+    selectedDeadlinePreset.value = ''
+    showCustomDeadlinePicker.value = false
+    return
+  }
+
+  const matchedPreset = deadlinePresets
+    .filter(item => item.id !== 'clear')
+    .find(item => getPresetDeadlineValue(item.id) === newTodo.deadline)
+
+  selectedDeadlinePreset.value = matchedPreset ? matchedPreset.id : ''
+  showCustomDeadlinePicker.value = !matchedPreset
+}
+
+const isParsing = computed(() => parseStatus.value === 'loading')
+const hasParsedDraft = computed(() => parseStatus.value === 'ready')
 
 const undoneCount = computed(() => todos.value.filter(item => item.done === 0).length)
 const doneCount = computed(() => todos.value.filter(item => item.done === 1).length)
@@ -290,9 +461,26 @@ const progressColor = computed(() => {
 
 const progressCaption = computed(() => {
   if (todos.value.length === 0) {
-    return isLoggedIn.value ? '从第一条任务开始' : '先浏览，再决定是否登录'
+    return isLoggedIn.value ? '' : ''
   }
   return `${doneCount.value} / ${todos.value.length} 已完成`
+})
+
+const heroGreeting = computed(() => {
+  if (!isLoggedIn.value) {
+    return '访客模式'
+  }
+
+  const hour = new Date().getHours()
+  const name = displayName.value || '用户'
+
+  if (hour < 12) {
+    return `上午好，${name}`
+  }
+  if (hour < 18) {
+    return `下午好，${name}`
+  }
+  return `晚上好，${name}`
 })
 
 const filterTabs = computed(() => [
@@ -303,7 +491,7 @@ const filterTabs = computed(() => [
 
 const emptyTitle = computed(() => {
   if (!isLoggedIn.value) {
-    return '首页可以先看，不必先登录'
+    return '访客模式'
   }
   if (activeFilter.value === 'done') {
     return '还没有已完成任务'
@@ -316,12 +504,12 @@ const emptyTitle = computed(() => {
 
 const emptyDesc = computed(() => {
   if (!isLoggedIn.value) {
-    return '点击上方“添加任务”时才会跳转到登录页。'
+    return ''
   }
   if (activeFilter.value === 'done') {
-    return '完成后的任务会收在这里，方便回顾。'
+    return ''
   }
-  return '从上方输入框开始创建第一条任务。'
+  return ''
 })
 
 const displayTodos = computed(() => {
@@ -345,6 +533,16 @@ const displayTodos = computed(() => {
 
   return result
 })
+
+const deadlineDisplayText = computed(() => {
+  if (!newTodo.deadline) {
+    return '暂未设置'
+  }
+  return formatDate(newTodo.deadline)
+})
+
+const manualSubmitDisabled = computed(() => !newTodo.title.trim())
+const parseButtonDisabled = computed(() => isParsing.value || !quickText.value.trim())
 
 function levelLabel(level) {
   return {
@@ -375,6 +573,28 @@ function formatDate(value) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+function toggleCustomDeadlinePicker() {
+  showCustomDeadlinePicker.value = !showCustomDeadlinePicker.value
+}
+
+function applyDeadlinePreset(presetId) {
+  if (presetId === 'clear') {
+    newTodo.deadline = null
+    selectedDeadlinePreset.value = 'clear'
+    showCustomDeadlinePicker.value = false
+    return
+  }
+
+  const value = getPresetDeadlineValue(presetId)
+  newTodo.deadline = value
+  selectedDeadlinePreset.value = presetId
+  showCustomDeadlinePicker.value = false
+}
+
+function handleCustomDeadlineChange() {
+  selectedDeadlinePreset.value = ''
+}
+
 async function fetchTodos() {
   if (!isLoggedIn.value) {
     todos.value = []
@@ -387,7 +607,7 @@ async function fetchTodos() {
   }
 }
 
-async function addTodo() {
+async function createTodo() {
   if (!newTodo.title.trim()) {
     return
   }
@@ -405,10 +625,36 @@ async function addTodo() {
 
   if (res.code === 200) {
     ElMessage.success('任务添加成功')
-    newTodo.title = ''
-    newTodo.deadline = null
-    newTodo.level = 'MEDIUM'
+    resetCreateForm()
     fetchTodos()
+  }
+}
+
+async function parseQuickTodo() {
+  const text = quickText.value.trim()
+  if (!text) {
+    return
+  }
+
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
+
+  parseStatus.value = 'loading'
+
+  try {
+    const res = await request.post('/todo/parse', { text })
+    if (res.code === 200) {
+      applyParsedDraft(res.data || {})
+      parsedSourceText.value = text
+      parseStatus.value = 'ready'
+      ElMessage.success('智能解析成功！')
+    } else {
+      parseStatus.value = 'idle'
+    }
+  } catch (error) {
+    parseStatus.value = 'idle'
   }
 }
 
@@ -478,12 +724,27 @@ function deleteTodo(id) {
     .catch(() => {})
 }
 
+watch(quickText, value => {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    parseStatus.value = 'idle'
+    parsedSourceText.value = ''
+    return
+  }
+
+  if (trimmed !== parsedSourceText.value) {
+    parseStatus.value = 'idle'
+  }
+})
+
 watch(isLoggedIn, value => {
   if (value) {
     fetchTodos()
   } else {
     todos.value = []
     editDialogVisible.value = false
+    resetCreateForm()
   }
 })
 
@@ -528,7 +789,7 @@ onMounted(fetchTodos)
 }
 
 .hero-copy p {
-  max-width: 520px;
+  max-width: 540px;
   font-size: 15px;
   line-height: 1.7;
   color: var(--text-secondary);
@@ -652,44 +913,267 @@ onMounted(fetchTodos)
   color: var(--text-tertiary);
 }
 
-.add-input {
-  margin-bottom: 12px;
+.add-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+  gap: 16px;
+}
+
+.add-card {
+  border: 1px solid rgba(64, 158, 255, 0.1);
+  border-radius: 22px;
+  padding: 22px;
+}
+
+.manual-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.98));
+  box-shadow: 0 22px 44px rgba(27, 39, 53, 0.08);
+}
+
+.smart-card {
+  background:
+    linear-gradient(180deg, rgba(246, 250, 255, 0.96), rgba(255, 252, 244, 0.96));
+  box-shadow: 0 16px 34px rgba(27, 39, 53, 0.05);
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1765c0;
+  background: rgba(64, 158, 255, 0.12);
+}
+
+.card-kicker.subtle {
+  color: #9a6800;
+  background: rgba(255, 214, 126, 0.22);
+}
+
+.card-head h3 {
+  margin: 8px 0 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.card-note {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.smart-desc {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
 }
 
 .add-input :deep(.el-input__wrapper),
+.smart-textarea :deep(.el-textarea__inner),
 .level-select :deep(.el-input__wrapper),
-.date-picker :deep(.el-input__wrapper) {
-  min-height: 46px;
+.custom-date-picker :deep(.el-input__wrapper) {
+  min-height: 48px;
   border-radius: 14px;
   background: #fbfcfe;
   box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.08) inset;
 }
 
+.smart-textarea :deep(.el-textarea__inner) {
+  min-height: 118px;
+  padding: 14px 16px;
+  resize: none;
+}
+
 .add-input :deep(.el-input__wrapper.is-focus),
+.smart-textarea :deep(.el-textarea__inner:focus),
 .level-select :deep(.el-input__wrapper.is-focus),
-.date-picker :deep(.el-input__wrapper.is-focus) {
+.custom-date-picker :deep(.el-input__wrapper.is-focus) {
   background: #fff;
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.16) inset !important;
 }
 
-.add-options {
+.manual-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
 }
 
 .level-select {
-  width: 150px;
+  width: 180px;
 }
 
-.date-picker {
-  flex: 1;
+.deadline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.add-btn {
+.custom-deadline-toggle {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deadline-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.deadline-preset {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: rgba(64, 158, 255, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, color 0.2s;
+}
+
+.deadline-preset:hover {
+  transform: translateY(-1px);
+  background: rgba(64, 158, 255, 0.14);
+}
+
+.deadline-preset.active {
+  color: #fff;
+  background: linear-gradient(135deg, #409eff, #2f7fe0);
+}
+
+.deadline-preset.clear {
+  color: #ba4d4d;
+  background: rgba(245, 108, 108, 0.12);
+}
+
+.deadline-preset.clear.active {
+  color: #fff;
+  background: linear-gradient(135deg, #f56c6c, #e14d4d);
+}
+
+.deadline-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(64, 158, 255, 0.06);
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.summary-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.summary-value.empty {
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.custom-picker-wrap {
+  margin-top: 4px;
+}
+
+.custom-date-picker {
+  width: 100%;
+}
+
+.primary-add-btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 18px;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.smart-textarea {
+  margin-bottom: 14px;
+}
+
+.parse-status-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.parse-chip {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.parse-chip.idle {
+  color: #7a8899;
+  background: rgba(122, 136, 153, 0.12);
+}
+
+.parse-chip.loading {
+  color: #cc8616;
+  background: rgba(230, 162, 60, 0.16);
+}
+
+.parse-chip.ready {
+  color: #1765c0;
+  background: rgba(64, 158, 255, 0.14);
+}
+
+.parse-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.smart-parse-btn {
+  width: 100%;
   height: 46px;
-  padding: 0 22px;
+  margin-top: 16px;
   border-radius: 14px;
+  border: 1px solid rgba(64, 158, 255, 0.16) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  color: var(--primary) !important;
   font-weight: 700;
 }
 
@@ -932,6 +1416,12 @@ onMounted(fetchTodos)
   background: rgba(245, 108, 108, 0.12) !important;
 }
 
+@media (max-width: 960px) {
+  .add-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .page-hero {
     flex-direction: column;
@@ -951,13 +1441,14 @@ onMounted(fetchTodos)
     border-top: 1px solid rgba(64, 158, 255, 0.08);
   }
 
-  .add-options {
+  .card-head,
+  .deadline-head {
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .level-select,
-  .date-picker,
-  .add-btn {
+  .custom-date-picker {
     width: 100%;
   }
 
@@ -974,8 +1465,8 @@ onMounted(fetchTodos)
 <style>
 .date-picker-popper {
   border: none !important;
-  border-radius: 14px !important;
-  box-shadow: 0 10px 26px rgba(27, 39, 53, 0.12) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 18px 36px rgba(27, 39, 53, 0.14) !important;
 }
 
 .date-picker-popper .el-picker-panel__shortcut:hover {

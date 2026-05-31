@@ -1,18 +1,19 @@
 Todo Master 更新部署说明
 
 适用场景：
-- 已经部署过旧版本
-- 现在需要把前端 UI、后端逻辑和数据库脚本一起更新
+- 已部署旧版本
+- 现在需要把前端界面、后端逻辑、数据库脚本和交付材料一起更新到当前版本
 
-一、建议更新内容
+一、本次更新重点
 
-需要同步的目录：
-- back/
-- front/
-- db/schema.sql
-- 配置文件中与数据库、邮件、JWT 相关的实际值
+需要同步的主要变化：
+- 待办新增区改为“手动添加主入口 + 智能解析辅助入口”
+- 新增一句话智能解析接口 `POST /api/todo/parse`
+- 截止时间 UI 改为快捷时间胶囊 + 自定义时间
+- 首页 Hero Badge 改为按时间显示问候语
+- `work/` 目录中的源码镜像、配置镜像、数据库脚本和说明文档已同步更新
 
-二、开发环境本地运行
+二、本地开发运行
 
 1. 初始化数据库
 mysql -u root -p < db/schema.sql
@@ -28,17 +29,20 @@ npm run dev
 
 说明：
 - 前端默认端口是 3000
-- Vite 会把 /api 代理到 http://localhost:8080
-- 如果页面报 ECONNREFUSED，表示后端没有启动
-- 本地前端已修复 Element Plus 分包导致的后台白屏问题
+- Vite 会把 `/api` 代理到 `http://localhost:8080`
+- 如果页面报 `ECONNREFUSED`，通常表示后端没有启动
 
-三、生产/服务器更新流程
+三、生产服务器更新流程
 
 1. 停止旧服务
 systemctl stop fab-todo
 
-2. 更新代码
-将最新的 back、front、db/schema.sql 上传到服务器部署目录
+2. 上传最新代码和交付材料
+需要至少同步以下目录或文件：
+- `back/`
+- `front/`
+- `db/schema.sql`
+- `work/`
 
 3. 重建前端
 cd /opt/todo-project/front
@@ -53,41 +57,42 @@ mvn -DskipTests package
 systemctl start fab-todo
 systemctl status fab-todo
 
-6. 验证是否已加载新版前端
-curl http://127.0.0.1:8080/ | head -20
-curl -I http://127.0.0.1:8080/assets/index-DS38Yaji.js
-curl -I http://127.0.0.1:8080/assets/element-plus-BAxHmODt.js
+6. 验证服务是否已经加载新版本
+curl http://127.0.0.1:8080/
 
-四、数据库说明
+四、DeepSeek 配置说明
 
-当前 schema.sql 已修复：
-- 去掉了 MySQL 8 不支持的 ADD COLUMN IF NOT EXISTS 写法
-- 去掉了旧版本里的乱码注释
-- 现在可直接导入
+智能解析由后端直连 DeepSeek，推荐配置为环境变量或独立密钥管理：
 
-如果数据库是全新环境，直接导入 schema.sql 即可。
+- `DEEPSEEK_BASE_URL`
+- `DEEPSEEK_API_KEY`
+- `DEEPSEEK_MODEL`
+- `DEEPSEEK_TIMEOUT_MS`
 
-如果数据库是旧环境，建议：
-- 先备份
-- 再根据现有表结构决定是直接重建还是手动补字段
+如果缺少 `api-key` 或 `model`，`/api/todo/parse` 会返回 `503`。
 
-五、默认管理员
+五、数据库说明
 
-首次启动时系统会自动创建管理员：
-- 用户名：admin
-- 密码：admin123
+本次功能没有新增数据库表结构，仍使用现有待办字段：
+- `title`
+- `level`
+- `deadline`
 
-六、当前重点变化
+因此：
+- 全新环境可直接导入 `db/schema.sql`
+- 旧环境通常不需要因为智能解析单独改表
 
-- 首页不再默认要求登录
-- 登录页和管理后台 UI 已更新
-- 个人中心逻辑已修复
-- 管理后台文案和页面已统一
-- 首页底部已增加 `By Dormitory-111`
-- 前端构建策略已调整为稳定分包
-- 已修复后台页白屏问题
+六、建议核对项
 
-补充：
-- Windows 本地开发建议使用 `mvnw.cmd`
-- `work/配置文件/fab-todo.service` 适用于 Linux 服务器的 `systemd` 部署
-- 如果浏览器仍白屏，先强制刷新或开无痕模式，再检查 F12 Console 红字报错
+更新完成后建议至少验证以下场景：
+- 手动填写标题后可直接创建任务
+- 智能解析可以回填标题、优先级、截止时间
+- 截止时间快捷胶囊和自定义时间都能正常工作
+- 首页已登录状态显示“上午好/下午好/晚上好，用户名”
+- 未登录时首页仍可浏览，但添加任务会跳转登录
+
+七、补充
+
+- Windows 本地开发优先使用 `mvnw.cmd`
+- `work/配置文件/fab-todo.service` 适用于 Linux `systemd` 部署
+- 每次前端改动后，都要重新执行前端构建再打包后端，否则 8080 仍可能提供旧静态资源

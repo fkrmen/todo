@@ -3,15 +3,15 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/fab_todo_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: "060720"
+    url: ${DB_URL:jdbc:mysql://localhost:3306/fab_todo_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   mail:
-    host: smtp.qq.com
-    port: 587
-    username: 2793864053@qq.com
-    password: ejcmqrirzosddhce
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -28,5 +28,11 @@ mybatis-plus:
       id-type: auto
 
 jwt:
-  secret: FabTodoSecretKeyForJWT2024MustBeAtLeast256BitsLong!@#$%^
-  expiration: 86400000
+  secret: ${JWT_SECRET:FabTodoSecretKeyForJWT2024MustBeAtLeast256BitsLong!@#$%^}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+deepseek:
+  base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+  api-key: ${DEEPSEEK_API_KEY:}
+  model: ${DEEPSEEK_MODEL:}
+  timeout-ms: ${DEEPSEEK_TIMEOUT_MS:15000}

@@ -32,7 +32,8 @@ public class EmailService {
                         + "标题：" + title + "\n"
                         + "截止时间：" + deadline + "\n\n"
                         + "请尽快处理。\n\n"
-                        + "Todo 待办系统自动提醒"
+                        + "Todo 待办系统自动提醒\n\n"
+                        + "By Fkrmen"
         );
         mailSender.send(message);
     }

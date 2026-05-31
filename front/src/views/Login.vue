@@ -7,14 +7,14 @@
       <section class="hero-panel">
         <div class="hero-badge">By Dormitory-111</div>
         <h1>TODO待办管理</h1>
-        <p>
+        <!-- <p>
           首页可以直接浏览，登录后再创建任务、接收提醒和管理个人资料。整个流程现在只保留一种登录方式，入口更统一。
-        </p>
-        <div class="hero-points">
+        </p> -->
+        <!-- <div class="hero-points">
           <span>首页可直接浏览</span>
           <span>支持邮箱提醒</span>
           <span>个人资料独立维护</span>
-        </div>
+        </div> -->
         <el-button class="ghost-home-btn" round @click="router.push('/todos')">先去首页看看</el-button>
       </section>
 
@@ -25,7 +25,7 @@
           </div>
           <div>
             <h2>登录 Todo 待办</h2>
-            <p>管理你的任务和提醒</p>
+            
           </div>
         </div>
 

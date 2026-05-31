@@ -2,24 +2,22 @@ Todo Master 项目说明
 
 1. 项目概述
 
-Todo Master 是一个前后端分离的待办事项管理系统。
-前端使用 Vue 3、Vite、Element Plus，后端使用 Spring Boot、MyBatis-Plus、JWT 和 MySQL。
+Todo Master 是一个前后端分离的待办事项管理系统。前端使用 Vue 3、Vite、Element Plus，后端使用 Spring Boot、MyBatis-Plus、JWT 和 MySQL。
 
-当前版本已经完成如下更新：
-- 首页允许未登录浏览，不再默认跳到登录页
-- 只有点击“添加任务”时，未登录用户才跳转到登录页
-- 前端登录页、首页、个人中心、后台管理页 UI 已统一重构
+当前交付版本已经包含以下能力：
+- 首页允许未登录浏览，只有真正执行添加任务等操作时才跳转登录
+- 待办新增区改为“手动添加主入口 + 智能解析辅助入口”
+- 新增一句话智能解析待办，自动提取标题、优先级、截止时间
+- 截止时间改为快捷时间胶囊和自定义时间两段式交互
+- 首页徽标按时间显示问候语，例如“上午好，张三”
 - 个人中心支持独立维护 QQ、昵称、邮箱、密码
-- 邮箱未变化时不扣除修改次数
-- 昵称为空时不允许保存
-- 管理后台支持用户管理、公告管理、强制下线和密码重置
-- 首页底部已增加 `By Dormitory-111` 版权信息
-- 已修复后台页因 Element Plus 分包循环依赖导致的白屏问题
+- 管理后台支持用户管理、公告管理、强制下线、密码重置
+- 系统支持邮件提醒
 
 2. 技术栈
 
-- 前端：Vue 3.4、Vue Router 4、Element Plus、Axios、Vite 5
-- 后端：Spring Boot 4.0.6、MyBatis-Plus 3.5.9、JWT
+- 前端：Vue 3、Vue Router 4、Element Plus、Axios、Vite 5
+- 后端：Spring Boot 4、MyBatis-Plus 3.5.9、JWT、JavaMail
 - 数据库：MySQL 8.0
 - Java：17
 
@@ -27,8 +25,10 @@ Todo Master 是一个前后端分离的待办事项管理系统。
 
 用户侧：
 - 用户注册、登录
-- 待办事项新增、编辑、删除、完成状态切换
-- 优先级与截止时间设置
+- 待办新增、编辑、删除、完成状态切换
+- 手动填写标题、优先级、截止时间直接创建任务
+- 一句话智能解析，辅助生成待办草稿
+- 截止时间快捷选择：今天结束前、明天、3天内、一周内、清空
 - 个人中心维护 QQ、昵称、邮箱、密码
 - 公告查看与已读状态记录
 - 到期邮件提醒
@@ -40,7 +40,25 @@ Todo Master 是一个前后端分离的待办事项管理系统。
 - 用户强制下线
 - 公告发布、编辑、删除
 
-4. 当前运行方式
+4. 智能解析能力
+
+后端新增接口：
+- `POST /api/todo/parse`
+
+请求体示例：
+- `{ "text": "明天下午3点提交周报，高优先级" }`
+
+返回体中的 `data` 包含：
+- `title`
+- `level`，取值为 `LOW / MEDIUM / HIGH`
+- `deadline`，格式为 `YYYY-MM-DDTHH:mm:ss`，无法确定时返回 `null`
+
+兜底规则：
+- 标题解析失败时，回退为原始输入句子
+- 优先级解析失败时，回退为 `MEDIUM`
+- 截止时间解析失败时，回退为 `null`
+
+5. 运行方式
 
 数据库初始化：
 mysql -u root -p < db/schema.sql
@@ -49,7 +67,7 @@ mysql -u root -p < db/schema.sql
 cd back
 mvnw.cmd spring-boot:run
 
-如果是 Linux / macOS 环境，可使用：
+Linux / macOS 可使用：
 mvn spring-boot:run
 
 启动前端：
@@ -61,20 +79,26 @@ npm run dev
 - 前端开发环境：http://localhost:3000
 - 后端接口：http://localhost:8080
 
-更新前端后如果要部署到 8080：
-- 先执行 `npm run build`
-- 再执行后端打包
-- 仅重启旧 JAR 而不重新打包，服务器仍会继续提供旧版前端文件
+6. 生产部署说明
 
-5. 目录说明
+更新前端后，如需部署到 8080 提供静态资源，必须执行：
+- `cd front && npm run build`
+- `cd ../back && mvnw.cmd -DskipTests package`
 
-- 数据库脚本：work/数据库脚本/schema.sql
-- 配置文件：work/配置文件/
-- 后端源码镜像：work/源码/back/
-- 前端源码镜像：work/源码/front/
+后端 `pom.xml` 已将 `front/dist` 打包进 JAR 的 `static/` 目录，只重启旧 JAR 不会自动更新前端资源。
 
-6. 说明
+7. work 目录内容
 
-本目录中的源码、SQL 和配置文件已同步到当前最新版项目状态，可直接作为课程提交材料或备份材料使用。
-其中 `work/配置文件/fab-todo.service` 为 Linux `systemd` 服务示例。
-其中 `work/源码/front/vite.config.js` 已同步为当前稳定分包版本。
+当前 `work/` 目录已同步到本次版本，主要包含：
+- `work/数据库脚本/schema.sql`
+- `work/配置文件/application.yml`
+- `work/配置文件/pom.xml`
+- `work/源码/back/`
+- `work/源码/front/`
+- `work/newuse.txt`
+
+8. 补充说明
+
+- `work/配置文件/fab-todo.service` 为 Linux `systemd` 服务示例
+- DeepSeek 建议通过环境变量或部署平台密钥管理配置，不建议将真实密钥写入版本库
+- 如果后续继续修改源码，建议同步更新 `work/源码` 与说明文档，保证交付材料一致
